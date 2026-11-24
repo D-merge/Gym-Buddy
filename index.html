@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#A63A35">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gym Buddy">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<title>Gym Buddy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: gym-floor plain talk, quick to use between sets
+   IDEA: the class whiteboard: today's lift chalked big, the 6-week block as plates
+   PICTURE: firebrick hero with today's lift, rep scheme and six week "plates"
+   COLOUR and TYPE: palette tomato/firebrick on gainsboro greys; Barlow Condensed + Barlow
+   LAYOUT: one phone column, bottom tab bar, cards below the hero */
+:root{--bg:#DCDCDC;--card:#fff;--ink:#1b1b1b;--mute:#5a5a5a;--line:#d2d2d2;--chip:#ececec;--red:#A63A35;--accInk:#A63A35;--tom:#FF6347;--g2:#808080;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#121212;--card:#1f1f1f;--ink:#f1f1f1;--mute:#A9A9A9;--line:#333;--chip:#2b2b2b;--accInk:#FF6347;--g2:#A9A9A9;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#121212;--card:#1f1f1f;--ink:#f1f1f1;--mute:#A9A9A9;--line:#333;--chip:#2b2b2b;--accInk:#FF6347;--g2:#A9A9A9;color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Barlow,system-ui,sans-serif;overflow-x:clip;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+main{max-width:560px;margin:0 auto}
+h1,h2,.big{font-family:"Barlow Condensed",Impact,sans-serif;font-weight:700;line-height:1.05;margin:0}
+h1{font-size:clamp(44px,13vw,64px)}
+h2{font-size:24px;margin-bottom:10px}
+.band{background:var(--red);color:#fff;padding:calc(18px + env(safe-area-inset-top)) 18px 20px}
+.band p{margin:4px 0 0}
+.over{opacity:.85;font-weight:500}
+.card{background:var(--card);margin:14px 12px;border-radius:14px;padding:16px}
+.mute{color:var(--mute);font-size:14px;margin:6px 0}
+.segs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin-top:16px}
+.seg{border:2px solid rgba(255,255,255,.45);border-radius:10px;padding:6px 0;text-align:center;display:grid}
+.seg b{font:700 24px/1 "Barlow Condensed",sans-serif}.seg small{font-size:12px;opacity:.85}
+.seg.done{background:rgba(255,255,255,.18);border-color:transparent}
+.seg.on{background:var(--tom);border-color:var(--tom);color:#1b1b1b}
+.strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:10px}
+.dstrip{all:unset;cursor:pointer;background:rgba(0,0,0,.18);border-radius:10px;padding:7px 6px;display:grid;text-align:center;position:relative;min-height:44px}
+.dstrip small{font-size:12px;opacity:.85}.dstrip b{font:600 16px/1.1 "Barlow Condensed",sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dstrip.on{background:#fff;color:var(--red)}
+.dstrip i{position:absolute;top:3px;right:6px;font-style:normal;font-size:12px}
+.dstrip:focus-visible,.chip:focus-visible,.btn:focus-visible,nav a:focus-visible{outline:3px solid var(--tom);outline-offset:2px}
+.datepick{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:14px}
+.datepick input{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.5);width:auto;color-scheme:dark}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px}
+.chip{all:unset;cursor:pointer;background:var(--chip);border-radius:999px;padding:9px 14px;font-size:15px;font-weight:500;min-height:26px;display:inline-flex;align-items:center}
+.chip.on{background:var(--tom);color:#1b1b1b;font-weight:600}
+input,select,textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-height:44px}
+textarea{min-height:64px;resize:vertical;margin-top:8px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--tom);border-color:transparent}
+label{display:block;font-size:14px;font-weight:500;margin-top:10px}
+label>input,label>select{margin-top:4px}
+.set{display:grid;grid-template-columns:22px minmax(0,1.3fr) 14px minmax(0,1fr) 44px;gap:8px;align-items:center;margin:8px 0}
+.set .n{font:700 18px "Barlow Condensed",sans-serif;color:var(--mute)}
+.unit{position:relative;margin:0}.unit input{padding-right:46px;margin:0}
+.unit em{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-style:normal;font-size:13px;color:var(--mute);pointer-events:none}
+.x{color:var(--mute);text-align:center}
+.btn{all:unset;box-sizing:border-box;cursor:pointer;background:var(--red);color:#fff;border-radius:12px;padding:12px 18px;font-weight:600;text-align:center;min-height:46px;display:inline-flex;align-items:center;justify-content:center}
+.btn.full{display:flex;width:100%;margin-top:12px}
+.btn.ghost{background:transparent;color:var(--accInk);border:2px solid var(--line)}
+.btn.sm{padding:6px 12px;min-height:36px;font-size:14px}
+.ico{all:unset;cursor:pointer;width:44px;height:44px;border-radius:10px;display:grid;place-items:center;color:var(--mute);font-size:22px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.grow{flex:1 1 140px}
+.last{background:var(--chip);border-radius:10px;padding:8px 12px;font-size:14px;margin:4px 0 6px}
+.score{display:flex;align-items:baseline;gap:10px;margin-top:10px}
+.score b{font:700 clamp(64px,22vw,96px)/1 "Barlow Condensed",sans-serif}
+.score span{font-size:18px;opacity:.9}
+.bars{margin-top:14px;display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:96px minmax(0,1fr) 56px;gap:8px;align-items:center;font-size:14px}
+.bar i{display:block;height:12px;border-radius:6px;background:rgba(255,255,255,.2);overflow:hidden}
+.bar i u{display:block;height:100%;background:var(--tom)}
+.bar span:last-child{text-align:right;font-weight:600;white-space:nowrap}
+.pbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:12px;margin:14px 12px}
+.pbs .card{margin:0}
+.pb{display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding:7px 0;font-size:15px}
+.pb b{white-space:nowrap}.pb small{color:var(--mute);font-size:13px;white-space:nowrap}
+.big{font-size:40px;color:var(--accInk)}
+.fig{position:relative;height:240px;margin-top:6px}.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--mute);flex-wrap:wrap}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{font-size:13px;color:var(--mute);font-weight:500;text-align:left;padding:6px 4px;border-bottom:1px solid var(--line)}
+td{padding:8px 4px;border-bottom:1px solid var(--line)}
+td.num,th.num{text-align:right;white-space:nowrap}
+.day{margin:16px 12px 6px;font:600 18px "Barlow Condensed",sans-serif;color:var(--mute)}
+.entry{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;border-top:1px solid var(--line);padding:10px 0}
+.entry:first-child{border-top:0;padding-top:0}
+.entry p{margin:2px 0 0;font-size:14px;color:var(--mute)}
+mark{background:var(--tom);color:#1b1b1b;border-radius:4px;padding:0 3px}
+.del{all:unset;cursor:pointer;font-size:13px;color:var(--mute);padding:8px;white-space:nowrap}
+.del.arm{color:var(--accInk);font-weight:600}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav a{display:grid;justify-items:center;gap:2px;padding:9px 0 8px;color:var(--mute);text-decoration:none;font-size:12px;font-weight:500}
+nav a.on{color:var(--accInk)}
+nav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#toast{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:#1b1b1b;color:#fff;padding:10px 16px;border-radius:12px;font-weight:500;opacity:0;transition:.25s;pointer-events:none;max-width:90vw;z-index:9}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast.pb{background:var(--tom);color:#1b1b1b;font-weight:700}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+.empty{text-align:center;padding:28px 16px}
+.cardhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.cardhead h2{margin:0}
+.tog{background:var(--chip);color:var(--ink);font-size:24px;font-weight:600;margin:-6px -6px -6px 0}
+.tog:focus-visible{outline:3px solid var(--tom);outline-offset:2px}
+.cardbody{margin-top:10px}
+.opt{font-weight:400;color:var(--mute);font-size:13px;margin-left:6px}
+.welcome{padding-top:calc(40px + env(safe-area-inset-top));padding-bottom:28px}
+.welcome h1{font-size:clamp(52px,16vw,76px)}
+.welcome p{font-size:18px;max-width:30em}
+</style>
+</head>
+<body>
+<main id="v"></main>
+<nav aria-label="Main">
+  <a href="#today" data-v="today"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Today</a>
+  <a href="#summary" data-v="summary"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/></svg>Summary</a>
+  <a href="#progress" data-v="progress"><svg viewBox="0 0 24 24"><path d="M3 20h18M5 16l4-5 4 3 6-8"/></svg>Progress</a>
+  <a href="#history" data-v="history"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>History</a>
+  <a href="#me" data-v="me"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Me</a>
+</nav>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+{
+const $ = s => document.querySelector(s);
+const KEY = 'gymbuddy.v1';
+const LIFTS = {
+  squat:{n:'Squat',v:['Back squat','Front squat','Pause squat','Box squat']},
+  bench:{n:'Bench',v:['Bench press','Close-grip bench','Incline bench','Pause bench']},
+  deadlift:{n:'Deadlift',v:['Deadlift','Sumo deadlift','Romanian deadlift','Trap-bar deadlift']},
+  press:{n:'Shoulder press',v:['Strict press','Push press','Seated DB press','Z press']}
+};
+const KEYS = Object.keys(LIFTS);
+const PAIR = {squat:'bench',bench:'squat',deadlift:'press',press:'deadlift'};
+const REPS = [10,10,6,6,3,3];
+const DEF_CH = [{id:'burpees',name:'Burpees in 1 min',unit:'reps',better:'high'},{id:'hang',name:'Max dead hang',unit:'sec',better:'high'}];
+
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const p2 = n => String(n).padStart(2,'0');
+const iso = d => `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+const parse = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y,m-1,d); };
+const today = () => iso(new Date());
+const nice = (s,o={day:'numeric',month:'short'}) => parse(s).toLocaleDateString('en-AU',o);
+const kg = w => String(Math.round(w*10)/10);
+const e1 = (w,r) => r<=1 ? w : w*(1+r/30);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const monday = d => { const m = new Date(d.getFullYear(),d.getMonth(),d.getDate()); m.setDate(m.getDate()-((m.getDay()+6)%7)); return m; };
+const short = l => l==='boxing' ? 'Boxing' : l==='press' ? 'Press' : LIFTS[l].n;
+
+function blank(){ return {onboarded:false,ui:{chOpen:false},profile:{name:'',age:'',gender:''},settings:{start:'2026-11-09',mon:'squat',thu:'deadlift'},sessions:[],ch:[],boxing:[],chTypes:DEF_CH.map(x=>({...x})),weights:[]}; }
+function load(){ try{ const d = JSON.parse(localStorage.getItem(KEY)); if(d && Array.isArray(d.sessions)) return fix(Object.assign(blank(), d)); }catch(e){} return blank(); }
+function fix(d){ d.settings = blank().settings; d.ui = Object.assign({chOpen:false}, d.ui); if(!Array.isArray(d.boxing)) d.boxing = []; return d; }
+let S = load();
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ toast('Could not save on this device'); } }
+
+/* ---------- program logic ---------- */
+function plan(ds){
+  const d = parse(ds), mon = monday(d);
+  const wi = Math.round((mon - monday(parse(S.settings.start))) / 6048e5);
+  const cw = ((wi % 6) + 6) % 6;
+  const swap = Math.abs(wi) % 2 === 1;
+  const m = swap ? PAIR[S.settings.mon] : S.settings.mon;
+  const th = swap ? PAIR[S.settings.thu] : S.settings.thu;
+  const days = [m, PAIR[m], 'boxing', th, PAIR[th]];
+  const dow = d.getDay();
+  return {week:cw+1, reps:REPS[cw], day:(dow>=1&&dow<=5)?days[dow-1]:'rest', days, monday:mon};
+}
+const curBW = () => { const w = [...S.weights].sort((a,b)=>a.date<b.date?-1:1).pop(); return w ? w.kg : null; };
+const chType = id => S.chTypes.find(c => c.id===id);
+function liftStats(l){
+  let best=null, heavy=null; const by={10:null,6:null,3:null};
+  for(const s of S.sessions.filter(s=>s.lift===l)) for(const x of s.sets){
+    const v = e1(x.w,x.r);
+    if(!best || v>best.v) best = {v,w:x.w,r:x.r,date:s.date};
+    if(!heavy || x.w>heavy.w) heavy = {w:x.w,r:x.r,date:s.date};
+    for(const k of [10,6,3]) if(x.r>=k && (!by[k] || x.w>by[k].w)) by[k] = {w:x.w,r:x.r,date:s.date};
+  }
+  return {best,heavy,by,count:S.sessions.filter(s=>s.lift===l).length};
+}
+function chBest(id){
+  const t = chType(id); const xs = S.ch.filter(c=>c.type===id);
+  if(!xs.length) return null;
+  return xs.reduce((b,c)=> (t&&t.better==='low' ? c.value<b.value : c.value>b.value) ? c : b);
+}
+function variantsFor(l){
+  const used = S.sessions.filter(s=>s.lift===l).map(s=>s.variant);
+  return [...new Set([...LIFTS[l].v, ...used])];
+}
+function lastSession(l, before){
+  return S.sessions.filter(s=>s.lift===l && s.date<=before).sort((a,b)=>a.date<b.date?1:-1)[0];
+}
+const topSet = s => s.sets.reduce((b,x)=> e1(x.w,x.r)>e1(b.w,b.r) ? x : b);
+
+/* ---------- state for screens ---------- */
+let view = 'today';
+const T = {date:today(), lift:null, variant:null, custom:'', sets:[], note:'', ch:'burpees', chv:'', bnote:''};
+const H = {f:'all', w:''};
+let P = 'squat';
+let armed = null, armTimer = 0;
+
+function resetToday(keepLift){
+  const p = plan(T.date);
+  if(!keepLift) T.lift = LIFTS[p.day] ? p.day : null;
+  if(T.lift){ const ls = lastSession(T.lift, T.date); T.variant = ls ? ls.variant : LIFTS[T.lift].v[0]; }
+  T.sets = [0,1,2].map(()=>({w:'', r:String(p.reps)}));
+  T.note = ''; T.custom = '';
+}
+
+/* ---------- views ---------- */
+function vToday(){
+  const p = plan(T.date);
+  const name = p.day==='boxing' ? 'Boxing' : p.day==='rest' ? 'No class' : LIFTS[p.day].n;
+  const sub = p.day==='boxing' ? 'Gloves on. Log your session below.' : p.day==='rest' ? 'Weekend. Log a catch-up lift or a challenge.' : `${p.reps} reps · week ${p.week} of 6`;
+  const strip = ['Mon','Tue','Wed','Thu','Fri'].map((n,i)=>{
+    const d = new Date(p.monday); d.setDate(d.getDate()+i); const ds = iso(d);
+    const done = S.sessions.some(s=>s.date===ds) || S.ch.some(c=>c.date===ds) || S.boxing.some(x=>x.date===ds);
+    return `<button class="dstrip ${ds===T.date?'on':''}" data-act="date" data-d="${ds}" aria-label="${n} ${d.getDate()}: ${short(p.days[i])}"><small>${n} ${d.getDate()}</small><b>${short(p.days[i])}</b>${done?'<i aria-hidden="true">✓</i>':''}</button>`;
+  }).join('');
+  const segs = REPS.map((r,i)=>`<span class="seg ${i+1===p.week?'on':i+1<p.week?'done':''}"><b>${r}</b><small>reps</small></span>`).join('');
+  const t = chType(T.ch) || S.chTypes[0];
+  const cb = t ? chBest(t.id) : null;
+  const dayLog = [...S.boxing.filter(x=>x.date===T.date).map(x=>entryBox(x)), ...S.sessions.filter(s=>s.date===T.date).map(s=>entryLift(s)), ...S.ch.filter(c=>c.date===T.date).map(c=>entryCh(c))];
+  return `
+  <header class="band">
+    <p class="over">${T.date===today()?'Today · ':''}${nice(T.date,{weekday:'long',day:'numeric',month:'long'})}</p>
+    <h1>${name}</h1>
+    <p>${sub}</p>
+    <div class="segs" aria-label="Six-week block, week ${p.week}">${segs}</div>
+    <div class="strip">${strip}</div>
+    <label class="datepick">Log for another day <input type="date" id="tdate" value="${T.date}"></label>
+  </header>
+  ${p.day==='boxing'?boxCard():''}
+  <section class="card">
+    <h2>${p.day==='boxing'?'Catch-up lift':'Log a lift'}</h2>
+    <label>Lift<select data-sel="lift"><option value="">${p.day==='boxing'||p.day==='rest'?'Choose a lift to catch up':'Choose a lift'}</option>${KEYS.map(k=>`<option value="${k}" ${T.lift===k?'selected':''}>${LIFTS[k].n}${k===p.day?' (scheduled)':''}</option>`).join('')}</select></label>
+    ${T.lift ? liftForm(p) : `<p class="mute">${p.day==='boxing'?'No lift today. Choose one if you\'re catching up a missed session.':'Choose a lift to log it.'}</p>`}
+  </section>
+  <section class="card">
+    <div class="cardhead"><h2>Challenges</h2><button class="ico tog" data-act="togch" aria-expanded="${S.ui.chOpen}" aria-label="${S.ui.chOpen?'Collapse':'Expand'} challenges">${S.ui.chOpen?'−':'+'}</button></div>
+    ${S.ui.chOpen?`<div class="cardbody">
+    <p class="mute">Circuits don't need logging. Record the challenge efforts here.</p>
+    ${S.chTypes.length?`<label>Challenge<select data-sel="ch">${S.chTypes.map(c=>`<option value="${esc(c.id)}" ${t&&t.id===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><div style="height:10px"></div>`:''}
+    ${t ? `<div class="last">${cb?`Your best: <b>${kg(cb.value)} ${esc(t.unit)}</b> on ${nice(cb.date)}`:'No result logged yet'}</div>
+    <div class="row"><label class="unit grow"><input id="chv" inputmode="decimal" data-t="chv" value="${esc(T.chv)}" placeholder="Result" aria-label="Result in ${esc(t.unit)}"><em>${esc(t.unit)}</em></label><button class="btn" data-act="savech">Save</button></div>` : '<p class="mute">Add a challenge in Me.</p>'}
+    </div>`:''}
+  </section>
+  ${dayLog.length?`<section class="card"><h2>Logged ${T.date===today()?'today':'on '+nice(T.date)}</h2>${dayLog.join('')}</section>`:''}`;
+}
+function boxCard(){
+  const done = S.boxing.some(x=>x.date===T.date);
+  const n = S.boxing.length;
+  return `<section class="card"><h2>Boxing</h2>
+    ${done?`<div class="last">Boxing session logged for ${nice(T.date)}. ${n} boxing session${n===1?'':'s'} all up.</div>`:
+    `<p class="mute">${n?`${n} boxing session${n===1?'':'s'} logged so far.`:'Tap to log that you trained.'}</p>
+    <textarea data-t="bnote" placeholder="Notes (optional)" aria-label="Boxing notes">${esc(T.bnote)}</textarea>
+    <button class="btn full" data-act="savebox">Log boxing session</button>`}
+  </section>`;
+}
+function entryBox(x){ return `<div class="entry"><div><b>Boxing session</b>${x.note?`<p>${esc(x.note)}</p>`:''}</div>${delBtn(x.id)}</div>`; }
+function liftForm(p){
+  const vars = variantsFor(T.lift);
+  const other = T.variant==='__other';
+  const ls = lastSession(T.lift, T.date);
+  const ph = ls ? kg(topSet(ls).w) : 'kg';
+  return `
+    <label>Variation<select data-sel="var">${vars.map(v=>`<option value="${esc(v)}" ${T.variant===v?'selected':''}>${esc(v)}</option>`).join('')}<option value="__other" ${other?'selected':''}>Other…</option></select></label>
+    ${other?`<input data-t="custom" value="${esc(T.custom)}" placeholder="Name this variation" aria-label="Variation name" style="margin-top:8px">`:''}
+    <div style="height:8px"></div>
+    ${ls?`<div class="last">Last time (${nice(ls.date)}, ${esc(ls.variant)}): ${ls.sets.map(x=>`${kg(x.w)}×${x.r}`).join(', ')}</div>`:''}
+    ${T.sets.map((x,i)=>`<div class="set"><span class="n">${i+1}</span>
+      <label class="unit"><input inputmode="decimal" data-set="${i}" data-k="w" value="${esc(x.w)}" placeholder="${ph}" aria-label="Set ${i+1} weight"><em>kg</em></label>
+      <span class="x">×</span>
+      <label class="unit"><input inputmode="numeric" data-set="${i}" data-k="r" value="${esc(x.r)}" aria-label="Set ${i+1} reps"><em>reps</em></label>
+      <button class="ico" data-act="rmset" data-i="${i}" aria-label="Remove set ${i+1}">−</button></div>`).join('')}
+    <button class="btn ghost sm" data-act="addset">+ Add set</button>
+    <textarea data-t="note" placeholder="Notes (optional)" aria-label="Notes">${esc(T.note)}</textarea>
+    <button class="btn full" data-act="savelift">Save ${LIFTS[T.lift].n.toLowerCase()}</button>`;
+}
+function delBtn(id){ return `<button class="del ${armed===id?'arm':''}" data-act="del" data-id="${esc(id)}">${armed===id?'Tap to delete':'Delete'}</button>`; }
+function entryLift(s, hw){
+  const t = topSet(s);
+  const sets = s.sets.map(x=>{ const txt = `${kg(x.w)}×${x.r}`; return hw && Math.abs(x.w-hw)<0.01 ? `<mark>${txt}</mark>` : txt; }).join(', ');
+  return `<div class="entry"><div><b>${esc(s.variant)}</b><p>${sets} kg · est. 1RM ${kg(e1(t.w,t.r))} kg</p>${s.note?`<p>${esc(s.note)}</p>`:''}</div>${delBtn(s.id)}</div>`;
+}
+function entryCh(c){
+  const t = chType(c.type);
+  return `<div class="entry"><div><b>${esc(t?t.name:c.type)}</b><p>${kg(c.value)} ${esc(t?t.unit:'')}</p></div>${delBtn(c.id)}</div>`;
+}
+
+function vSum(){
+  const bw = curBW();
+  const st = KEYS.map(k=>({k,...liftStats(k)}));
+  const have = st.filter(x=>x.best);
+  const total = have.reduce((a,x)=>a+x.best.v,0);
+  const nm = S.profile.name ? esc(S.profile.name)+'’s' : 'Your';
+  if(!S.sessions.length && !S.ch.length && !S.boxing.length) return `<header class="band"><p class="over">Summary</p><h1>${nm} numbers</h1><p>Personal bests and your strength-to-weight score show up here once you log.</p></header>
+    <section class="card empty"><p>Nothing logged yet.</p><button class="btn" data-act="go" data-v="today">Log today's session</button><p class="mute" style="margin-top:14px">Want to see how it looks first?</p><button class="btn ghost sm" data-act="sample">Load sample data</button></section>`;
+  let head;
+  if(bw && have.length){
+    const sc = total/bw;
+    head = `<div class="score"><b>${sc.toFixed(2)}×</b><span>bodyweight</span></div>
+      <p>Estimated 1RM total ${kg(total)} kg ÷ ${kg(bw)} kg bodyweight${have.length<4?` · ${have.length} of 4 lifts so far`:''}</p>
+      <div class="bars">${st.map(x=>{ const r = x.best? x.best.v/bw : 0; return `<div class="bar"><span>${short(x.k)}</span><i><u style="width:${Math.min(100,r/2.5*100)}%"></u></i><span>${x.best?r.toFixed(2)+'×':'–'}</span></div>`; }).join('')}</div>`;
+  } else if(have.length){
+    head = `<p style="margin-top:12px">Estimated 1RM total <b>${kg(total)} kg</b>.</p><button class="btn ghost sm" style="color:#fff;border-color:rgba(255,255,255,.6);margin-top:10px" data-act="go" data-v="me">Add your bodyweight for a score</button>`;
+  } else head = `<p>Log a lift to get your strength score.</p>`;
+  const blockStart = plan(today()).monday; blockStart.setDate(blockStart.getDate()-(plan(today()).week-1)*7);
+  const inBlock = S.sessions.filter(s=>s.date>=iso(blockStart)).length;
+  const cards = st.map(x=>`<section class="card"><h2>${LIFTS[x.k].n}</h2>
+    ${x.best?`<div class="big">${kg(x.best.v)} kg</div><p class="mute" style="margin-top:0">Est. 1RM from ${kg(x.best.w)}×${x.best.r} on ${nice(x.best.date)}</p>
+    ${[10,6,3].map(k=>`<div class="pb"><span>Best for ${k}+ reps</span>${x.by[k]?`<span><b>${kg(x.by[k].w)} kg</b> <small>${nice(x.by[k].date)}</small></span>`:'<small>–</small>'}</div>`).join('')}
+    <div class="pb"><span>Heaviest lifted</span><span><b>${kg(x.heavy.w)} kg</b> <small>×${x.heavy.r}, ${nice(x.heavy.date)}</small></span></div>`:'<p class="mute">Not logged yet.</p>'}
+  </section>`).join('');
+  const chs = S.chTypes.map(t=>{ const b = chBest(t.id); return `<div class="pb"><span>${esc(t.name)}</span>${b?`<span><b>${kg(b.value)} ${esc(t.unit)}</b> <small>${nice(b.date)}</small></span>`:'<small>–</small>'}</div>`; }).join('');
+  return `<header class="band"><p class="over">Summary</p><h1>${nm} numbers</h1>${head}</header>
+    <div class="pbs">${cards}</div>
+    <section class="card"><h2>Challenge bests</h2>${chs}</section>
+    <section class="card"><div class="pb" style="border:0"><span>Lift sessions this block</span><b>${inBlock}</b></div><div class="pb"><span>All-time lift sessions</span><b>${S.sessions.length}</b></div><div class="pb"><span>Boxing sessions this block</span><b>${S.boxing.filter(x=>x.date>=iso(blockStart)).length}</b></div><div class="pb"><span>All-time boxing sessions</span><b>${S.boxing.length}</b></div>
+    <p class="mute">Est. 1RM uses the Epley formula, so a set of 10 and a set of 3 can be compared fairly. The score adds your best estimated 1RM for each of the four lifts and divides by your latest bodyweight.</p></section>`;
+}
+
+let CH = []; let ro = null;
+function vProg(){
+  const opts = [...KEYS.map(k=>[k,short(k)]), ...S.chTypes.map(c=>[c.id,c.name]), ['bw','Bodyweight']];
+  if(!opts.some(o=>o[0]===P)) P = 'squat';
+  let rows = '', legend = '', change = '';
+  if(LIFTS[P]){
+    const ss = S.sessions.filter(s=>s.lift===P).sort((a,b)=>a.date<b.date?-1:1);
+    CH = [{c:'var(--tom)',pts:ss.map(s=>{const t=topSet(s);return {x:+parse(s.date),y:e1(t.w,t.r)}})},{c:'var(--g2)',pts:ss.map(s=>({x:+parse(s.date),y:topSet(s).w}))}];
+    legend = `<span><i style="background:var(--tom)"></i>Est. 1RM</span><span><i style="background:var(--g2)"></i>Top set weight</span>`;
+    if(ss.length>1){ const a=CH[0].pts[0].y, b=CH[0].pts[ss.length-1].y, d=b-a; change = `Est. 1RM ${d>=0?'up':'down'} ${kg(Math.abs(d))} kg since ${nice(ss[0].date)}`; }
+    rows = ss.length?`<table><thead><tr><th>Date</th><th>Variation</th><th class="num">Top set</th><th class="num">1RM</th></tr></thead><tbody>${[...ss].reverse().map(s=>{const t=topSet(s);return `<tr><td>${nice(s.date)}</td><td>${esc(s.variant)}</td><td class="num">${kg(t.w)}×${t.r}</td><td class="num">${kg(e1(t.w,t.r))}</td></tr>`}).join('')}</tbody></table>`:'';
+  } else if(P==='bw'){
+    const ws = [...S.weights].sort((a,b)=>a.date<b.date?-1:1);
+    CH = [{c:'var(--tom)',pts:ws.map(w=>({x:+parse(w.date),y:w.kg}))}];
+    rows = ws.length?`<table><thead><tr><th>Date</th><th class="num">Bodyweight</th></tr></thead><tbody>${[...ws].reverse().map(w=>`<tr><td>${nice(w.date,{day:'numeric',month:'short',year:'numeric'})}</td><td class="num">${kg(w.kg)} kg</td></tr>`).join('')}</tbody></table>`:'';
+  } else {
+    const t = chType(P); const xs = S.ch.filter(c=>c.type===P).sort((a,b)=>a.date<b.date?-1:1);
+    CH = [{c:'var(--tom)',pts:xs.map(c=>({x:+parse(c.date),y:c.value}))}];
+    rows = xs.length?`<table><thead><tr><th>Date</th><th class="num">Result</th></tr></thead><tbody>${[...xs].reverse().map(c=>`<tr><td>${nice(c.date)}</td><td class="num">${kg(c.value)} ${esc(t.unit)}</td></tr>`).join('')}</tbody></table>`:'';
+  }
+  const n = CH[0].pts.length;
+  return `<header class="band"><p class="over">Progress</p><h1>Over time</h1></header>
+    <section class="card"><label style="margin:0 0 12px">Show<select data-sel="prog">
+      <optgroup label="Lifts">${KEYS.map(k=>`<option value="${k}" ${P===k?'selected':''}>${LIFTS[k].n}</option>`).join('')}</optgroup>
+      <optgroup label="Challenges">${S.chTypes.map(c=>`<option value="${esc(c.id)}" ${P===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</optgroup>
+      <optgroup label="Body"><option value="bw" ${P==='bw'?'selected':''}>Bodyweight</option></optgroup></select></label>
+    ${n?`<div class="legend">${legend}</div><div class="fig"><svg id="chart" role="img" aria-label="Progress chart"></svg></div>${change?`<p class="mute">${change}</p>`:''}`:`<p class="mute">Nothing logged for this yet.</p>`}</section>
+    ${rows?`<section class="card">${rows}</section>`:''}`;
+}
+function drawChart(){
+  const s = document.getElementById('chart'); if(!s) return;
+  const W = s.clientWidth, H = s.clientHeight; if(!W) return;
+  const pts = CH.flatMap(c=>c.pts); if(!pts.length){ s.innerHTML=''; return; }
+  const pl=40, pr=12, pt=12, pb=26;
+  let x0 = Math.min(...pts.map(p=>p.x)), x1 = Math.max(...pts.map(p=>p.x));
+  if(x0===x1){ x0 -= 3*864e5; x1 += 3*864e5; }
+  let y0 = Math.min(...pts.map(p=>p.y)), y1 = Math.max(...pts.map(p=>p.y));
+  const padY = (y1-y0)*.15 || Math.max(1, y1*.1); y0 = Math.max(0, y0-padY); y1 += padY;
+  const X = x => pl + (x-x0)/(x1-x0)*(W-pl-pr), Y = y => pt + (1-(y-y0)/(y1-y0))*(H-pt-pb);
+  let g = '';
+  for(let i=0;i<=3;i++){ const v = y0+(y1-y0)*i/3, yy = Y(v).toFixed(1);
+    g += `<line x1="${pl}" x2="${W-pr}" y1="${yy}" y2="${yy}" style="stroke:var(--line)"/><text x="${pl-6}" y="${+yy+4}" text-anchor="end" style="fill:var(--mute);font-size:12px">${Math.round(v)}</text>`; }
+  const lab = x => new Date(x).toLocaleDateString('en-AU',{day:'numeric',month:'short'});
+  g += `<text x="${pl}" y="${H-6}" style="fill:var(--mute);font-size:12px">${lab(x0)}</text><text x="${W-pr}" y="${H-6}" text-anchor="end" style="fill:var(--mute);font-size:12px">${lab(x1)}</text>`;
+  for(const c of [...CH].reverse()){
+    if(!c.pts.length) continue;
+    const d = c.pts.map((p,i)=>`${i?'L':'M'}${X(p.x).toFixed(1)},${Y(p.y).toFixed(1)}`).join('');
+    g += `<path d="${d}" style="fill:none;stroke:${c.c};stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round"/>`;
+    g += c.pts.map(p=>`<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="3.5" style="fill:${c.c}"/>`).join('');
+  }
+  s.innerHTML = g;
+}
+
+function vHist(){
+  const f = [['all','All'],...KEYS.map(k=>[k,short(k)]),['box','Boxing'],['ch','Challenges']];
+  return `<header class="band"><p class="over">History</p><h1>Every session</h1></header>
+    <section class="card"><label style="margin-top:0">Show<select data-sel="hf">${f.map(o=>`<option value="${o[0]}" ${H.f===o[0]?'selected':''}>${o[0]==='all'?'Everything':o[0]==='ch'?'Challenges':o[0]==='box'?'Boxing':LIFTS[o[0]].n}</option>`).join('')}</select></label>
+    <label class="unit">Find days you lifted a weight<input id="hw" inputmode="decimal" value="${esc(H.w)}" placeholder="e.g. 100"><em style="top:calc(50% + 12px)">kg</em></label></section>
+    <div id="hlist">${histList()}</div>`;
+}
+function histList(){
+  const hw = parseFloat(H.w);
+  let ss = S.sessions, cs = S.ch, bs = S.boxing;
+  if(H.f==='ch'){ ss = []; bs = []; } else if(H.f==='box'){ ss = []; cs = []; } else if(H.f!=='all'){ ss = ss.filter(s=>s.lift===H.f); cs = []; bs = []; }
+  if(hw>0){ ss = ss.filter(s=>s.sets.some(x=>Math.abs(x.w-hw)<0.01)); cs = []; bs = []; }
+  const days = {};
+  for(const x of bs) (days[x.date] ||= []).push(entryBox(x));
+  for(const s of ss) (days[s.date] ||= []).push(entryLift(s, hw>0?hw:null));
+  for(const c of cs) (days[c.date] ||= []).push(entryCh(c));
+  const keys = Object.keys(days).sort().reverse();
+  if(!keys.length) return `<section class="card empty"><p class="mute">${hw>0?`No sets at ${kg(hw)} kg yet.`:'Nothing logged yet.'}</p></section>`;
+  return keys.map(d=>`<p class="day">${nice(d,{weekday:'short',day:'numeric',month:'short',year:'numeric'})} · ${plan(d).day==='rest'?'Weekend':'Week '+plan(d).week+' of 6'}</p><section class="card" style="margin-top:0">${days[d].join('')}</section>`).join('');
+}
+
+function profFields(){
+  const pr = S.profile, bw = curBW(), o = '<span class="opt">optional</span>';
+  return `<label>Name${o}<input data-p="name" value="${esc(pr.name)}" autocomplete="given-name"></label>
+    <div class="two"><label>Age${o}<input data-p="age" inputmode="numeric" value="${esc(pr.age)}"></label>
+    <label>Gender${o}<select data-p="gender">${['','Female','Male','Non-binary','Prefer not to say'].map(g=>`<option value="${g}" ${pr.gender===g?'selected':''}>${g||'—'}</option>`).join('')}</select></label></div>
+    <label class="unit">Bodyweight${o}<input data-p="weight" inputmode="decimal" value="${bw?kg(bw):''}" placeholder="kg"><em style="top:calc(50% + 12px)">kg</em></label>`;
+}
+function vWelcome(){
+  return `<header class="band welcome"><p class="over">Welcome to</p><h1>Gym Buddy</h1>
+    <p>Log your class lifts and challenges, track your personal bests, and watch your strength climb across each six-week block.</p></header>
+  <section class="card"><h2>About me</h2>
+    <p class="mute">All of this is optional. Add your bodyweight if you want a strength-to-weight score. You can change any of it later in Me.</p>
+    ${profFields()}
+    <p class="mute">Everything stays on this phone. Nothing is sent anywhere.</p>
+    <button class="btn full" data-act="start">Let's go</button>
+    <button class="btn ghost full" data-act="start">Skip for now</button>
+  </section>`;
+}
+function vMe(){
+  const pr = S.profile, st = S.settings, bw = curBW();
+  const hasSample = S.boxing.some(x=>x.sample) || S.sessions.some(s=>s.sample) || S.ch.some(c=>c.sample) || S.weights.some(w=>w.sample);
+  return `<header class="band"><p class="over">Me</p><h1>${pr.name?esc(pr.name):'Your details'}</h1><p>All optional. Stays on this phone.</p></header>
+  <section class="card"><h2>Profile</h2>
+    ${profFields()}
+    <p class="mute">Each weight change is dated, so your score tracks your weight over time.</p>
+  </section>
+  <section class="card"><h2>Program</h2>
+    <p class="mute" style="font-size:15px">Six-week blocks: 2 weeks of 10s, 2 of 6s, 2 of 3s, then repeat.<br>Wednesday is always boxing. Mon/Tue squat and bench swap each week, and so do Thu/Fri deadlift and shoulder press.<br>The week of 23 November is the first 6-rep week: Squat Monday, Bench Tuesday, Deadlift Thursday, Shoulders Friday.</p>
+  </section>
+  <section class="card"><h2>Challenges</h2>
+    ${S.chTypes.map(c=>{ const used = S.ch.some(x=>x.type===c.id); return `<div class="entry"><div><b>${esc(c.name)}</b><p>${esc(c.unit)} · ${c.better==='low'?'lower':'higher'} is better</p></div>${used?'':delBtn('ct:'+c.id)}</div>`; }).join('')}
+    <label>New challenge<input id="ncName" placeholder="e.g. Max push-ups"></label>
+    <div class="two"><label>Unit<input id="ncUnit" placeholder="reps, sec, m"></label>
+    <label>Best is<select id="ncBetter"><option value="high">Higher</option><option value="low">Lower</option></select></label></div>
+    <button class="btn full" data-act="addch">Add challenge</button>
+  </section>
+  <section class="card"><h2>Your data</h2>
+    <p class="mute">Saved only in this browser on this device. Nothing goes to a server. Copy a backup now and then and keep it somewhere safe.</p>
+    <div class="row"><button class="btn ghost sm" data-act="export">Copy backup</button><button class="btn ghost sm" data-act="showimport">Restore backup</button>
+    ${hasSample?'<button class="btn ghost sm" data-act="unsample">Remove sample data</button>':'<button class="btn ghost sm" data-act="sample">Load sample data</button>'}</div>
+    <div id="io"></div>
+    <button class="btn ghost full" data-act="del" data-id="__reset">${armed==='__reset'?'Tap again to erase everything':'Erase all data'}</button>
+  </section>`;
+}
+
+/* ---------- actions ---------- */
+function toast(msg, pb){ const t = $('#toast'); t.textContent = msg; t.className = 'show'+(pb?' pb':''); clearTimeout(toast.t); toast.t = setTimeout(()=>t.className='', pb?3200:2000); }
+function saveLift(){
+  const sets = T.sets.map(x=>({w:parseFloat(x.w), r:parseInt(x.r,10)})).filter(x=>x.w>0 && x.r>0);
+  if(!sets.length){ toast('Add a weight and reps for at least one set'); return; }
+  const variant = T.variant==='__other' ? (T.custom.trim() || 'Other') : T.variant;
+  const before = liftStats(T.lift);
+  S.sessions.push({id:uid(), date:T.date, lift:T.lift, variant, sets, note:T.note.trim()});
+  save();
+  const after = liftStats(T.lift);
+  const newBest = before.best && after.best.v > before.best.v + 0.01;
+  const newHeavy = before.heavy && after.heavy.w > before.heavy.w;
+  if(newHeavy) toast(`New PB: ${kg(after.heavy.w)} kg ${LIFTS[T.lift].n.toLowerCase()}`, true);
+  else if(newBest) toast(`New est. 1RM PB: ${kg(after.best.v)} kg`, true);
+  else toast(`${LIFTS[T.lift].n} saved`);
+  resetToday(true); render();
+}
+function saveCh(){
+  const v = parseFloat(T.chv); const t = chType(T.ch) || S.chTypes[0];
+  if(!t || !(v>=0) || isNaN(v)){ toast('Enter a result'); return; }
+  const prev = chBest(t.id);
+  S.ch.push({id:uid(), date:T.date, type:t.id, value:v}); save();
+  const better = prev && (t.better==='low' ? v<prev.value : v>prev.value);
+  toast(better ? `New PB: ${kg(v)} ${t.unit}` : `${t.name} saved`, better);
+  T.chv = ''; render();
+}
+function sample(){
+  const st = monday(parse(S.settings.start)); const base = {squat:112,bench:82,deadlift:142,press:56};
+  for(let wk=-6; wk<0; wk++) for(let i=0;i<5;i++){
+    const d = new Date(st); d.setDate(d.getDate()+wk*7+i); const ds = iso(d); const p = plan(ds); const l = p.days[i];
+    if(l==='boxing'){ S.boxing.push({id:uid(),date:ds,note:'',sample:true}); const odd = (wk+6)%2; S.ch.push({id:uid(),date:ds,type:odd?'burpees':'hang',value:odd?17+(wk+6):40+(wk+6)*5,sample:true}); continue; }
+    const w = Math.round(base[l]*(1+(wk+6)*.012)/(1+p.reps/30)/2.5)*2.5;
+    S.sessions.push({id:uid(),date:ds,lift:l,variant:(wk===-3&&l==='squat')?'Front squat':LIFTS[l].v[0],sets:[{w:w-5,r:p.reps},{w,r:p.reps},{w,r:p.reps}],note:'',sample:true});
+  }
+  [-6,-4,-2].forEach((wk,j)=>{ const d = new Date(st); d.setDate(d.getDate()+wk*7); S.weights.push({date:iso(d),kg:84-j,sample:true}); });
+  save(); toast('Sample data loaded'); render();
+}
+function exportData(){
+  const json = JSON.stringify(S);
+  $('#io').innerHTML = `<label>Backup (copied if your browser allows)<textarea id="ioText" readonly style="min-height:110px">${esc(json)}</textarea></label>`;
+  try{ navigator.clipboard.writeText(json).then(()=>toast('Backup copied'),()=>toast('Select the text and copy it')); }catch(e){ toast('Select the text and copy it'); }
+  try{ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json],{type:'application/json'})); a.download = `gym-buddy-${today()}.json`; a.click(); }catch(e){}
+}
+function importData(text){
+  try{ const d = JSON.parse(text); if(!d || !Array.isArray(d.sessions)) throw 0; S = fix(Object.assign(blank(), d)); save(); toast('Backup restored'); resetToday(); render(); }
+  catch(e){ toast('That backup could not be read'); }
+}
+function doDelete(id){
+  if(armed!==id){ armed = id; clearTimeout(armTimer); armTimer = setTimeout(()=>{ armed=null; render(); }, 3500); render(); return; }
+  armed = null; clearTimeout(armTimer);
+  if(id==='__reset'){ S = blank(); save(); resetToday(); toast('All data erased'); }
+  else if(id.startsWith('ct:')){ S.chTypes = S.chTypes.filter(c=>c.id!==id.slice(3)); save(); }
+  else { S.sessions = S.sessions.filter(s=>s.id!==id); S.ch = S.ch.filter(c=>c.id!==id); S.boxing = S.boxing.filter(x=>x.id!==id); save(); toast('Deleted'); }
+  render();
+}
+
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  const a = b.dataset.act;
+  if(a==='date'){ T.date = b.dataset.d; resetToday(); render(); }
+  else if(a==='lift'){ T.lift = b.dataset.l; resetToday(true); render(); }
+  else if(a==='var'){ T.variant = b.dataset.v; render(); if(T.variant==='__other'){ const i=document.querySelector('[data-t=custom]'); i&&i.focus(); } }
+  else if(a==='addset'){ const l = T.sets[T.sets.length-1] || {w:'',r:String(plan(T.date).reps)}; T.sets.push({...l}); render(); }
+  else if(a==='rmset'){ if(T.sets.length>1){ T.sets.splice(+b.dataset.i,1); render(); } }
+  else if(a==='savelift') saveLift();
+  else if(a==='ch'){ T.ch = b.dataset.c; render(); }
+  else if(a==='savech') saveCh();
+  else if(a==='prog'){ P = b.dataset.p; render(); }
+  else if(a==='hf'){ H.f = b.dataset.f; $('#hlist').innerHTML = histList(); document.querySelectorAll('[data-act=hf]').forEach(c=>c.classList.toggle('on', c.dataset.f===H.f)); }
+  else if(a==='del') doDelete(b.dataset.id);
+  else if(a==='go') go(b.dataset.v);
+  else if(a==='sample') sample();
+  else if(a==='unsample'){ S.sessions=S.sessions.filter(s=>!s.sample); S.boxing=S.boxing.filter(x=>!x.sample); S.ch=S.ch.filter(c=>!c.sample); S.weights=S.weights.filter(w=>!w.sample); save(); toast('Sample data removed'); render(); }
+  else if(a==='addch'){
+    const name = $('#ncName').value.trim(); if(!name){ toast('Name the challenge'); return; }
+    S.chTypes.push({id:'c'+uid(), name, unit:$('#ncUnit').value.trim()||'reps', better:$('#ncBetter').value}); save(); toast('Challenge added'); render();
+  }
+  else if(a==='export') exportData();
+  else if(a==='savebox'){ if(!S.boxing.some(x=>x.date===T.date)){ S.boxing.push({id:uid(),date:T.date,note:T.bnote.trim()}); save(); toast('Boxing session logged'); } T.bnote=''; render(); }
+  else if(a==='togch'){ S.ui.chOpen = !S.ui.chOpen; save(); render(); }
+  else if(a==='start'){ if(b.textContent.includes('go')) document.querySelectorAll('[data-p]').forEach(i=>{ if(i.dataset.p!=='weight' || parseFloat(i.value)!==curBW()) saveProf(i); }); S.onboarded = true; save(); view = 'today'; if(location.hash!=='#today') location.hash='today'; render(); window.scrollTo(0,0); }
+  else if(a==='showimport'){ $('#io').innerHTML = `<label>Paste a backup<textarea id="ioText" style="min-height:110px"></textarea></label><label>Or choose a backup file<input type="file" id="ioFile" accept=".json,application/json"></label><button class="btn full" data-act="doimport">Restore (replaces current data)</button>`; }
+  else if(a==='doimport') importData($('#ioText').value);
+});
+document.addEventListener('input', e=>{
+  const t = e.target;
+  if(t.dataset.set!=null) T.sets[+t.dataset.set][t.dataset.k] = t.value;
+  else if(t.dataset.t) T[t.dataset.t] = t.value;
+  else if(t.id==='hw'){ H.w = t.value; $('#hlist').innerHTML = histList(); }
+});
+document.addEventListener('change', e=>{
+  const t = e.target;
+  if(t.dataset.sel){
+    const k = t.dataset.sel, v = t.value;
+    if(k==='lift'){ T.lift = v || null; resetToday(true); render(); }
+    else if(k==='var'){ T.variant = v; render(); if(v==='__other'){ const i=document.querySelector('[data-t=custom]'); i&&i.focus(); } }
+    else if(k==='ch'){ T.ch = v; render(); }
+    else if(k==='prog'){ P = v; render(); }
+    else if(k==='hf'){ H.f = v; $('#hlist').innerHTML = histList(); }
+  }
+  else if(t.id==='tdate' && t.value){ T.date = t.value; resetToday(); render(); }
+  else if(t.dataset.p) saveProf(t);
+});
+function saveProf(t){
+    const k = t.dataset.p;
+    if(k==='weight'){
+      const v = parseFloat(t.value); if(!(v>0)) return;
+      const d = today(); S.weights = S.weights.filter(w=>!(w.date===d && !w.sample)); S.weights.push({date:d,kg:v}); toast('Weight updated');
+    } else S.profile[k] = t.value.trim();
+    save();
+}
+document.addEventListener('change', e=>{ const t = e.target;
+  if(t.id==='ioFile' && t.files[0]){ t.files[0].text().then(importData); }
+});
+
+function go(v){ if(location.hash !== '#'+v) location.hash = v; else route(); }
+function route(){ const h = location.hash.slice(1); view = VIEWS[h] ? h : 'today'; armed = null; render(); window.scrollTo(0,0); }
+const VIEWS = {today:vToday, summary:vSum, progress:vProg, history:vHist, me:vMe};
+function render(){
+  const first = !S.onboarded;
+  $('nav').hidden = first;
+  $('#v').innerHTML = first ? vWelcome() : VIEWS[view]();
+  document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on', a.dataset.v===view));
+  if(ro){ ro.disconnect(); ro = null; }
+  const s = document.getElementById('chart');
+  if(s){ ro = new ResizeObserver(drawChart); ro.observe(s); }
+}
+window.addEventListener('hashchange', route);
+resetToday();
+route();
+}
+</script>
+<script>
+if('serviceWorker' in navigator && location.protocol==='https:'){
+  window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
+</script>
+</body>
+</html>
