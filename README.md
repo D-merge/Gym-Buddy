@@ -26,3 +26,6 @@ Deleting the app deletes its data, so use Me → Copy backup now and then.
 
 ## Updating
 Change `VERSION` in `sw.js` whenever you push an update. Phones pick it up the next time they open the app with signal.
+
+## Licence
+Copyright (c) 2026 Reclipse Digital Solutions. All rights reserved. See `LICENSE`.
