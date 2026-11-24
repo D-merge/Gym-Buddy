@@ -1,5 +1,7 @@
-# Gym Buddy
+# Gym-Buddy
+Companion app for Andy's gym.
 
+A companion app for class training.
 A companion app for class training. Everything is stored on the phone (localStorage). There's no back end.
 
 ## Program (fixed)
