@@ -175,7 +175,9 @@ function idbPut(json){ return idbOpen().then(db=>new Promise(res=>{ const tx = d
 function idbGet(){ return idbOpen().then(db=>new Promise(res=>{ const q = db.transaction('kv').objectStore('kv').get('state'); q.onsuccess = ()=>res(q.result||null); q.onerror = ()=>res(null); })).catch(()=>null); }
 function cachePut(json){ try{ return caches.open('gymbuddy-data').then(c=>c.put('./__gymbuddy_state', new Response(json,{headers:{'content-type':'application/json'}}))).catch(()=>{}); }catch(e){ return Promise.resolve(); } }
 function cacheGet(){ try{ return caches.open('gymbuddy-data').then(c=>c.match('./__gymbuddy_state')).then(r=>r?r.text():null).catch(()=>null); }catch(e){ return Promise.resolve(null); } }
-const DIAG = {ls:false, idb:null, cache:null, persisted:null, restored:false};
+const DIAG = {ls:false, idb:null, cache:null, persisted:null, restored:false, more:null};
+let BORN = null;
+try{ BORN = localStorage.getItem('gymbuddy.born'); if(!BORN){ BORN = String(Date.now()); localStorage.setItem('gymbuddy.born', BORN); } }catch(e){}
 try{ DIAG.ls = !!localStorage.getItem(KEY); }catch(e){}
 async function recover(){
   const parse = t => { try{ const d = JSON.parse(t); return d && Array.isArray(d.sessions) ? d : null; }catch(e){ return null; } };
@@ -189,7 +191,27 @@ async function recover(){
     try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
     toast('Your data was restored from a backup copy'); render();
   } else if(S.savedAt){ idbPut(JSON.stringify(S)); cachePut(JSON.stringify(S)); }
-  if(view==='me') render();
+  const m = {};
+  try{ m.dbs = indexedDB.databases ? (await indexedDB.databases()).map(d=>d.name) : null; }catch(e){ m.dbs = null; }
+  try{ m.caches = await caches.keys(); }catch(e){ m.caches = null; }
+  try{ const est = await navigator.storage.estimate(); m.kb = Math.round(est.usage/1024); }catch(e){}
+  try{ m.ls = Object.keys(localStorage); }catch(e){ m.ls = null; }
+  DIAG.more = m;
+  if(view==='me' || !S.onboarded) render();
+}
+function diagHTML(){
+  const m = DIAG.more || {}, t = v => v==null ? 'unavailable' : v.length ? v.map(esc).join(', ') : 'none';
+  const ts = n => n ? new Date(+n).toLocaleString('en-AU',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}) : 'unknown';
+  return `<details style="margin-top:10px"><summary class="mute">Storage details (for troubleshooting)</summary><p class="mute" style="font-size:13px;overflow-wrap:anywhere">
+    Address: ${esc(location.origin+location.pathname)}<br>
+    Storage first created: ${ts(BORN)}<br>
+    Last saved: ${ts(S.savedAt)}<br>
+    Copies at open: browser ${DIAG.ls?'yes':'no'}, database ${DIAG.idb?'yes':'no'}, cache ${DIAG.cache?'yes':'no'}<br>
+    Protected: ${DIAG.persisted===null?'unknown':DIAG.persisted?'yes':'no'} · Used: ${m.kb??'?'} KB<br>
+    Databases on this site: ${t(m.dbs)}<br>
+    Caches on this site: ${t(m.caches)}<br>
+    Browser storage keys: ${t(m.ls)}<br>
+    Browser: ${esc(navigator.userAgent.replace(/^Mozilla\/5\.0 /,''))}</p></details>`;
 }
 
 /* ---------- program logic ---------- */
@@ -448,6 +470,7 @@ function vWelcome(){
     <p class="mute">Everything stays on this phone. Nothing is sent anywhere.</p>
     <button class="btn full" data-act="start">Let's go</button>
     <button class="btn ghost full" data-act="start">Skip for now</button>
+    ${diagHTML()}
   </section>`;
 }
 function vMe(){
@@ -473,6 +496,7 @@ function vMe(){
     <div class="pb"><span>Copies found when the app opened</span><b>${[DIAG.ls,DIAG.idb,DIAG.cache].filter(Boolean).length} of 3</b></div>
     <div class="pb"><span>Protected from clean-up</span><b>${DIAG.persisted===null?'Unknown':DIAG.persisted?'Yes':'No'}</b></div>
     ${DIAG.restored?'<p class="mute">Data was restored from a backup copy when the app opened.</p>':''}
+    ${diagHTML()}
   </section>
   <section class="card"><h2>Your data</h2>
     <p class="mute">Saved only in this browser on this device. Nothing goes to a server. Copy a backup now and then and keep it somewhere safe.</p>

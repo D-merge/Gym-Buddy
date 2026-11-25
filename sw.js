@@ -1,5 +1,5 @@
 // Bump VERSION whenever you push changes so phones pick up the new build.
-const VERSION = 'gym-buddy-v6';
+const VERSION = 'gym-buddy-v7';
 const CORE = [
   './',
   './index.html',
@@ -18,7 +18,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== VERSION && k !== 'gymbuddy-data').map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k.startsWith('gym-buddy-') && k !== VERSION).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
