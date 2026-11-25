@@ -105,6 +105,7 @@ nav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stro
 #toast.pb{background:var(--tom);color:#1b1b1b;font-weight:700}
 @media (prefers-reduced-motion:reduce){#toast{transition:none}}
 .empty{text-align:center;padding:28px 16px}
+.warn{border:2px solid var(--tom)}
 .foot{text-align:center;font-size:13px;color:var(--mute);margin:22px 12px 8px}
 .foot a{color:inherit}
 .cardhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -566,14 +567,17 @@ function route(){ const h = location.hash.slice(1); view = VIEWS[h] ? h : 'today
 const VIEWS = {today:vToday, summary:vSum, progress:vProg, history:vHist, me:vMe};
 function render(){
   const first = !S.onboarded;
+  const warn = WIPES ? `<section class="card warn"><b>This browser may wipe your data.</b><p class="mute" style="margin-bottom:0">DuckDuckGo and similar privacy browsers can clear everything when closed. Open Gym Buddy in Chrome or Samsung Internet and add it to your home screen from there.</p></section>` : '';
   $('nav').hidden = first;
-  $('#v').innerHTML = (first ? vWelcome() : VIEWS[view]()) + '<p class="foot">A <a href="https://reclipse.com.au" target="_blank" rel="noopener">Reclipse Digital Solutions</a> product</p>';
+  $('#v').innerHTML = (first ? vWelcome() : VIEWS[view]()).replace('</header>', '</header>' + warn) + '<p class="foot">A <a href="https://reclipse.com.au" target="_blank" rel="noopener">Reclipse Digital Solutions</a> product</p>';
   document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on', a.dataset.v===view));
   if(ro){ ro.disconnect(); ro = null; }
   const s = document.getElementById('chart');
   if(s){ ro = new ResizeObserver(drawChart); ro.observe(s); }
 }
 window.addEventListener('hashchange', route);
+const WIPES = /DuckDuckGo|Focus\/|Klar\//i.test(navigator.userAgent);
+try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
 resetToday();
 route();
 }
