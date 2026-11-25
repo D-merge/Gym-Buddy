@@ -97,6 +97,7 @@ mark{background:var(--tom);color:#1b1b1b;border-radius:4px;padding:0 3px}
 .del.arm{color:var(--accInk);font-weight:600}
 .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav[hidden]{display:none}
 nav a{display:grid;justify-items:center;gap:2px;padding:9px 0 8px;color:var(--mute);text-decoration:none;font-size:12px;font-weight:500}
 nav a.on{color:var(--accInk)}
 nav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -160,7 +161,36 @@ function blank(){ return {onboarded:false,ui:{chOpen:false},profile:{name:'',age
 function load(){ try{ const d = JSON.parse(localStorage.getItem(KEY)); if(d && Array.isArray(d.sessions)) return fix(Object.assign(blank(), d)); }catch(e){} return blank(); }
 function fix(d){ d.settings = blank().settings; d.ui = Object.assign({chOpen:false}, d.ui); if(!Array.isArray(d.boxing)) d.boxing = []; return d; }
 let S = load();
-function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ toast('Could not save on this device'); } }
+function save(){
+  S.savedAt = Date.now();
+  const json = JSON.stringify(S);
+  let ok = false;
+  try{ localStorage.setItem(KEY, json); ok = true; }catch(e){}
+  idbPut(json).then(r=>{ if(!ok && !r) toast('Could not save on this device'); });
+  cachePut(json);
+}
+/* Backup copies: IndexedDB and Cache Storage, so one cleared store can be restored from another */
+function idbOpen(){ return new Promise((res,rej)=>{ try{ const r = indexedDB.open('gymbuddy',1); r.onupgradeneeded = ()=>r.result.createObjectStore('kv'); r.onsuccess = ()=>res(r.result); r.onerror = ()=>rej(r.error); }catch(e){ rej(e); } }); }
+function idbPut(json){ return idbOpen().then(db=>new Promise(res=>{ const tx = db.transaction('kv','readwrite'); tx.objectStore('kv').put(json,'state'); tx.oncomplete = ()=>res(true); tx.onerror = ()=>res(false); })).catch(()=>false); }
+function idbGet(){ return idbOpen().then(db=>new Promise(res=>{ const q = db.transaction('kv').objectStore('kv').get('state'); q.onsuccess = ()=>res(q.result||null); q.onerror = ()=>res(null); })).catch(()=>null); }
+function cachePut(json){ try{ return caches.open('gymbuddy-data').then(c=>c.put('./__gymbuddy_state', new Response(json,{headers:{'content-type':'application/json'}}))).catch(()=>{}); }catch(e){ return Promise.resolve(); } }
+function cacheGet(){ try{ return caches.open('gymbuddy-data').then(c=>c.match('./__gymbuddy_state')).then(r=>r?r.text():null).catch(()=>null); }catch(e){ return Promise.resolve(null); } }
+const DIAG = {ls:false, idb:null, cache:null, persisted:null, restored:false};
+try{ DIAG.ls = !!localStorage.getItem(KEY); }catch(e){}
+async function recover(){
+  const parse = t => { try{ const d = JSON.parse(t); return d && Array.isArray(d.sessions) ? d : null; }catch(e){ return null; } };
+  const [a,b] = await Promise.all([idbGet(), cacheGet()]);
+  const di = parse(a), dc = parse(b);
+  DIAG.idb = !!di; DIAG.cache = !!dc;
+  try{ DIAG.persisted = navigator.storage && navigator.storage.persisted ? await navigator.storage.persisted() : null; }catch(e){}
+  const best = [di,dc].filter(Boolean).sort((x,y)=>(y.savedAt||0)-(x.savedAt||0))[0];
+  if(best && (best.savedAt||0) > (S.savedAt||0)){
+    S = fix(Object.assign(blank(), best)); DIAG.restored = true;
+    try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+    toast('Your data was restored from a backup copy'); render();
+  } else if(S.savedAt){ idbPut(JSON.stringify(S)); cachePut(JSON.stringify(S)); }
+  if(view==='me') render();
+}
 
 /* ---------- program logic ---------- */
 function plan(ds){
@@ -438,6 +468,12 @@ function vMe(){
     <label>Best is<select id="ncBetter"><option value="high">Higher</option><option value="low">Lower</option></select></label></div>
     <button class="btn full" data-act="addch">Add challenge</button>
   </section>
+  <section class="card"><h2>Storage check</h2>
+    <div class="pb" style="border:0"><span>Last saved</span><b>${S.savedAt?new Date(S.savedAt).toLocaleString('en-AU',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}):'Not yet'}</b></div>
+    <div class="pb"><span>Copies found when the app opened</span><b>${[DIAG.ls,DIAG.idb,DIAG.cache].filter(Boolean).length} of 3</b></div>
+    <div class="pb"><span>Protected from clean-up</span><b>${DIAG.persisted===null?'Unknown':DIAG.persisted?'Yes':'No'}</b></div>
+    ${DIAG.restored?'<p class="mute">Data was restored from a backup copy when the app opened.</p>':''}
+  </section>
   <section class="card"><h2>Your data</h2>
     <p class="mute">Saved only in this browser on this device. Nothing goes to a server. Copy a backup now and then and keep it somewhere safe.</p>
     <div class="row"><button class="btn ghost sm" data-act="export">Copy backup</button><button class="btn ghost sm" data-act="showimport">Restore backup</button>
@@ -580,6 +616,7 @@ const WIPES = /DuckDuckGo|Focus\/|Klar\//i.test(navigator.userAgent);
 try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
 resetToday();
 route();
+recover();
 }
 </script>
 <script>
