@@ -79,6 +79,10 @@ label>input,label>select{margin-top:4px}
 .score b{font:700 clamp(64px,22vw,96px)/1 "Barlow Condensed",sans-serif}
 .score span{font-size:18px;opacity:.9}
 .bars{margin-top:14px;display:grid;gap:8px}
+.gain{display:grid;grid-template-columns:72px minmax(0,1fr);gap:4px 10px;align-items:center;font-size:14px;border-top:1px solid var(--line);padding:8px 0}
+.gain i{display:block;height:10px;border-radius:5px;background:var(--chip);overflow:hidden}
+.gain i u{display:block;height:100%;background:var(--tom)}
+.gain span:last-child{grid-column:2;color:var(--mute)}.gain b{color:var(--ink)}
 .bar{display:grid;grid-template-columns:96px minmax(0,1fr) 56px;gap:8px;align-items:center;font-size:14px}
 .bar i{display:block;height:12px;border-radius:6px;background:rgba(255,255,255,.2);overflow:hidden}
 .bar i u{display:block;height:100%;background:var(--tom)}
@@ -362,23 +366,62 @@ function entryCh(c){
   return `<div class="entry"><div><b>${esc(t?t.name:c.type)}</b><p>${kg(c.value)} ${esc(t?t.unit:'')}</p></div>${delBtn(c.id)}</div>`;
 }
 
+/* DOTS (powerlifting) score: squat + bench + deadlift best est. 1RM, adjusted for bodyweight */
+const DOTS_C = {Male:[-307.75076,24.0900756,-0.1918759221,0.0007391293,-0.000001093], Female:[-57.96288,13.6175032,-0.1126655495,0.0005158568,-0.0000010706]};
+function dotsFor(total, bw, g){
+  const one = (c,hi) => { const x = Math.min(hi, Math.max(40, bw)); return total*500/(c[0] + c[1]*x + c[2]*x**2 + c[3]*x**3 + c[4]*x**4); };
+  const m = one(DOTS_C.Male,210), f = one(DOTS_C.Female,150);
+  return g==='Male' ? m : g==='Female' ? f : (m+f)/2;
+}
+function bwAt(date){
+  const ws = [...S.weights].sort((a,b)=>a.date<b.date?-1:1); if(!ws.length) return null;
+  const before = ws.filter(w=>w.date<=date); return (before.length ? before[before.length-1] : ws[0]).kg;
+}
+const DOTS_LIFTS = ['squat','bench','deadlift'];
+function dotsSeries(){
+  const best = {}, byDate = {};
+  for(const s of S.sessions.filter(s=>DOTS_LIFTS.includes(s.lift)).sort((a,b)=>a.date<b.date?-1:1)){
+    const t = topSet(s); best[s.lift] = Math.max(best[s.lift]||0, e1(t.w,t.r));
+    const bw = bwAt(s.date);
+    if(DOTS_LIFTS.every(l=>best[l]) && bw) byDate[s.date] = dotsFor(DOTS_LIFTS.reduce((a,l)=>a+best[l],0), bw, S.profile.gender);
+  }
+  return Object.keys(byDate).sort().map(d=>({date:d, y:byDate[d]}));
+}
+function gains(){
+  const rows = KEYS.map(k=>{
+    const ss = S.sessions.filter(s=>s.lift===k).sort((a,b)=>a.date<b.date?-1:1); if(!ss.length) return null;
+    const t = topSet(ss[0]); return {k, start:e1(t.w,t.r), now:liftStats(k).best.v, date:ss[0].date, n:ss.length};
+  }).filter(Boolean);
+  const s0 = rows.reduce((a,r)=>a+r.start,0), s1 = rows.reduce((a,r)=>a+r.now,0);
+  return {rows, pct: s0 ? (s1/s0-1)*100 : 0, first: rows.map(r=>r.date).sort()[0], enough: rows.some(r=>r.n>1)};
+}
+const sign = n => (n>=0?'+':'−') + Math.abs(n);
 function vSum(){
   const bw = curBW();
   const st = KEYS.map(k=>({k,...liftStats(k)}));
   const have = st.filter(x=>x.best);
   const total = have.reduce((a,x)=>a+x.best.v,0);
   const nm = S.profile.name ? esc(S.profile.name)+'’s' : 'Your';
-  if(!S.sessions.length && !S.ch.length && !S.boxing.length) return `<header class="band"><p class="over">Summary</p><h1>${nm} numbers</h1><p>Personal bests and your strength-to-weight score show up here once you log.</p></header>
+  if(!S.sessions.length && !S.ch.length && !S.boxing.length) return `<header class="band"><p class="over">Summary</p><h1>${nm} numbers</h1><p>Personal bests, your DOTS score and how much stronger you've got show up here once you log.</p></header>
     <section class="card empty"><p>Nothing logged yet.</p><button class="btn" data-act="go" data-v="today">Log today's session</button><p class="mute" style="margin-top:14px">Want to see how it looks first?</p><button class="btn ghost sm" data-act="sample">Load sample data</button></section>`;
+  const ds = dotsSeries(), dNow = ds.length ? ds[ds.length-1].y : null, dStart = ds.length ? ds[0].y : null;
+  const missing = DOTS_LIFTS.filter(l=>!st.find(x=>x.k===l).best).map(l=>LIFTS[l].n.toLowerCase());
+  const g = gains();
+  const mf = S.profile.gender==='Male' || S.profile.gender==='Female';
   let head;
-  if(bw && have.length){
-    const sc = total/bw;
-    head = `<div class="score"><b>${sc.toFixed(2)}×</b><span>bodyweight</span></div>
-      <p>Estimated 1RM total ${kg(total)} kg ÷ ${kg(bw)} kg bodyweight${have.length<4?` · ${have.length} of 4 lifts so far`:''}</p>
-      <div class="bars">${st.map(x=>{ const r = x.best? x.best.v/bw : 0; return `<div class="bar"><span>${short(x.k)}</span><i><u style="width:${Math.min(100,r/2.5*100)}%"></u></i><span>${x.best?r.toFixed(2)+'×':'–'}</span></div>`; }).join('')}</div>`;
-  } else if(have.length){
-    head = `<p style="margin-top:12px">Estimated 1RM total <b>${kg(total)} kg</b>.</p><button class="btn ghost sm" style="color:#fff;border-color:rgba(255,255,255,.6);margin-top:10px" data-act="go" data-v="me">Add your bodyweight for a score</button>`;
-  } else head = `<p>Log a lift to get your strength score.</p>`;
+  if(dNow!=null){
+    const tot = DOTS_LIFTS.reduce((a,l)=>a+st.find(x=>x.k===l).best.v,0);
+    head = `<div class="score"><b>${Math.round(dNow)}</b><span>DOTS score</span></div>
+      <p>Squat + bench + deadlift best est. 1RM: ${kg(tot)} kg at ${kg(bw)} kg bodyweight${ds.length>1&&Math.round(dNow)!==Math.round(dStart)?` · ${sign(Math.round(dNow)-Math.round(dStart))} since ${nice(ds[0].date)}`:''}</p>
+      ${mf?'':`<p class="over" style="font-size:14px">DOTS has separate formulas for men and women. Set your gender in Me for an exact score; this is the average of both.</p>`}`;
+  } else if(!bw){
+    head = `<p style="margin-top:10px">Your DOTS score compares your squat, bench and deadlift with your bodyweight.</p><button class="btn ghost sm" style="color:#fff;border-color:rgba(255,255,255,.6);margin-top:10px" data-act="go" data-v="me">Add your bodyweight</button>`;
+  } else head = `<p style="margin-top:10px">Log ${missing.join(', ').replace(/, ([^,]*)$/,' and $1')} to get your DOTS score.</p>`;
+  const maxP = Math.max(1, ...g.rows.map(r=>Math.abs(r.now/r.start-1)*100));
+  const gainCard = g.rows.length ? `<section class="card"><h2>Since you started</h2>
+    ${g.enough ? `<div class="big">${g.pct>=0?'+':'−'}${Math.abs(g.pct).toFixed(1)}%</div><p class="mute" style="margin-top:0">stronger across your lifts since ${nice(g.first,{day:'numeric',month:'short',year:'numeric'})}</p>` : `<p class="mute">Log a second session of any lift to see how much you've improved.</p>`}
+    ${g.rows.map(r=>{ const pc = (r.now/r.start-1)*100; return `<div class="gain"><span>${short(r.k)}</span><i><u style="width:${Math.max(2,Math.abs(pc)/maxP*100)}%"></u></i><span>${kg(r.start)} → ${kg(r.now)} kg <b>${sign(Math.round(pc))}%</b></span></div>`; }).join('')}
+    <p class="mute">Compares your best est. 1RM now with your first logged session of each lift.</p></section>` : '';
   const blockStart = plan(today()).monday; blockStart.setDate(blockStart.getDate()-(plan(today()).week-1)*7);
   const inBlock = S.sessions.filter(s=>s.date>=iso(blockStart)).length;
   const cards = st.map(x=>`<section class="card"><h2>${LIFTS[x.k].n}</h2>
@@ -388,15 +431,16 @@ function vSum(){
   </section>`).join('');
   const chs = S.chTypes.map(t=>{ const b = chBest(t.id); return `<div class="pb"><span>${esc(t.name)}</span>${b?`<span><b>${kg(b.value)} ${esc(t.unit)}</b> <small>${nice(b.date)}</small></span>`:'<small>–</small>'}</div>`; }).join('');
   return `<header class="band"><p class="over">Summary</p><h1>${nm} numbers</h1>${head}</header>
+    ${gainCard}
     <div class="pbs">${cards}</div>
     <section class="card"><h2>Challenge bests</h2>${chs}</section>
     <section class="card"><div class="pb" style="border:0"><span>Lift sessions this block</span><b>${inBlock}</b></div><div class="pb"><span>All-time lift sessions</span><b>${S.sessions.length}</b></div><div class="pb"><span>Boxing sessions this block</span><b>${S.boxing.filter(x=>x.date>=iso(blockStart)).length}</b></div><div class="pb"><span>All-time boxing sessions</span><b>${S.boxing.length}</b></div>
-    <p class="mute">Est. 1RM uses the Epley formula, so a set of 10 and a set of 3 can be compared fairly. The score adds your best estimated 1RM for each of the four lifts and divides by your latest bodyweight.</p></section>`;
+    <p class="mute">Est. 1RM uses the Epley formula, so a set of 10 and a set of 3 can be compared fairly. DOTS is the score powerlifting competitions use to compare lifters of different sizes. It takes your best est. 1RM for squat, bench and deadlift and adjusts for bodyweight and gender. Shoulder press isn't part of DOTS but counts towards your improvement.</p></section>`;
 }
 
 let CH = []; let ro = null;
 function vProg(){
-  const opts = [...KEYS.map(k=>[k,short(k)]), ...S.chTypes.map(c=>[c.id,c.name]), ['bw','Bodyweight']];
+  const opts = [...KEYS.map(k=>[k,short(k)]), ...S.chTypes.map(c=>[c.id,c.name]), ['dots','DOTS score'], ['bw','Bodyweight']];
   if(!opts.some(o=>o[0]===P)) P = 'squat';
   let rows = '', legend = '', change = '';
   if(LIFTS[P]){
@@ -405,6 +449,12 @@ function vProg(){
     legend = `<span><i style="background:var(--tom)"></i>Est. 1RM</span><span><i style="background:var(--g2)"></i>Top set weight</span>`;
     if(ss.length>1){ const a=CH[0].pts[0].y, b=CH[0].pts[ss.length-1].y, d=b-a; change = `Est. 1RM ${d>=0?'up':'down'} ${kg(Math.abs(d))} kg since ${nice(ss[0].date)}`; }
     rows = ss.length?`<table><thead><tr><th>Date</th><th>Variation</th><th class="num">Top set</th><th class="num">1RM</th></tr></thead><tbody>${[...ss].reverse().map(s=>{const t=topSet(s);return `<tr><td>${nice(s.date)}</td><td>${esc(s.variant)}</td><td class="num">${kg(t.w)}×${t.r}</td><td class="num">${kg(e1(t.w,t.r))}</td></tr>`}).join('')}</tbody></table>`:'';
+  } else if(P==='dots'){
+    const ds = dotsSeries();
+    CH = [{c:'var(--tom)',pts:ds.map(d=>({x:+parse(d.date),y:d.y}))}];
+    if(ds.length>1){ const d = Math.round(ds[ds.length-1].y) - Math.round(ds[0].y); change = `DOTS ${d>=0?'up':'down'} ${Math.abs(d)} since ${nice(ds[0].date)}`; }
+    rows = ds.length?`<table><thead><tr><th>Date</th><th class="num">DOTS</th></tr></thead><tbody>${[...ds].reverse().map(d=>`<tr><td>${nice(d.date)}</td><td class="num">${Math.round(d.y)}</td></tr>`).join('')}</tbody></table>`:'';
+    if(!ds.length) rows = '<p class="mute">Needs a squat, bench and deadlift logged, plus your bodyweight in Me.</p>';
   } else if(P==='bw'){
     const ws = [...S.weights].sort((a,b)=>a.date<b.date?-1:1);
     CH = [{c:'var(--tom)',pts:ws.map(w=>({x:+parse(w.date),y:w.kg}))}];
@@ -419,6 +469,7 @@ function vProg(){
     <section class="card"><label style="margin:0 0 12px">Show<select data-sel="prog">
       <optgroup label="Lifts">${KEYS.map(k=>`<option value="${k}" ${P===k?'selected':''}>${LIFTS[k].n}</option>`).join('')}</optgroup>
       <optgroup label="Challenges">${S.chTypes.map(c=>`<option value="${esc(c.id)}" ${P===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</optgroup>
+      <optgroup label="Scores"><option value="dots" ${P==='dots'?'selected':''}>DOTS score</option></optgroup>
       <optgroup label="Body"><option value="bw" ${P==='bw'?'selected':''}>Bodyweight</option></optgroup></select></label>
     ${n?`<div class="legend">${legend}</div><div class="fig"><svg id="chart" role="img" aria-label="Progress chart"></svg></div>${change?`<p class="mute">${change}</p>`:''}`:`<p class="mute">Nothing logged for this yet.</p>`}</section>
     ${rows?`<section class="card">${rows}</section>`:''}`;
@@ -479,7 +530,7 @@ function vWelcome(){
   return `<header class="band welcome"><p class="over">Welcome to</p><h1>Gym Buddy</h1>
     <p>Log your class lifts and challenges, track your personal bests, and watch your strength climb across each six-week block.</p></header>
   <section class="card"><h2>About me</h2>
-    <p class="mute">All of this is optional. Add your bodyweight if you want a strength-to-weight score. You can change any of it later in Me.</p>
+    <p class="mute">All of this is optional. Add your bodyweight and gender if you want a DOTS strength score. You can change any of it later in Me.</p>
     ${profFields()}
     <p class="mute">Everything stays on this phone. Nothing is sent anywhere.</p>
     <button class="btn full" data-act="start">Let's go</button>
