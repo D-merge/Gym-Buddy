@@ -1,5 +1,5 @@
 // Bump VERSION whenever you push changes so phones pick up the new build.
-const VERSION = 'gym-buddy-v7';
+const VERSION = 'gym-buddy-v8';
 const CORE = [
   './',
   './index.html',
